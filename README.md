@@ -1,8 +1,8 @@
 # GenAI - Generative AI Course Assignments
 
-This repository contains all assignments, projects, and practical implementations for the **Generative AI Course**. It serves as a comprehensive collection of hands-on learning materials covering fundamental to advanced concepts in generative artificial intelligence.
+This repository contains all assignments, projects, and practical implementations for the **genai**. It serves as a collection of learning materials covering fundamental to class concepts in genai.
 
-## 📚 Course Overview
+## Overview
 
 This repository is structured to support progressive learning in generative AI, covering:
 
@@ -12,7 +12,7 @@ This repository is structured to support progressive learning in generative AI, 
 - **Neural Language Models**: Modern deep learning approaches
 - **API Development**: Creating production-ready AI services
 
-## 🗂️ Repository Structure
+## Repository Structure
 
 ```
 genai/
@@ -31,7 +31,7 @@ genai/
 └── README.md                     # This documentation
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.8+
@@ -59,7 +59,7 @@ genai/
    uv run python -m spacy download en_core_web_lg
    ```
 
-## 📝 Assignment Modules
+## Assignment Modules
 
 ### Module 2: Basics of Generative AI
 **Focus**: Statistical foundations and traditional NLP approaches
@@ -85,7 +85,7 @@ genai/
 - Integrating multiple AI services
 - Creating RESTful APIs for AI models
 
-## 🛠️ Running the Applications
+## Running the Applications
 
 ### Interactive Jupyter Notebooks
 ```bash
@@ -104,7 +104,7 @@ uv run uvicorn app.main:app --reload
 # View documentation at http://127.0.0.1:8000/docs
 ```
 
-## 🔧 API Endpoints
+## API Endpoints
 
 The production FastAPI application provides the following endpoints:
 
@@ -130,7 +130,7 @@ curl -X POST "http://127.0.0.1:8000/similarity" \
   -d '{"word1": "AI", "word2": "intelligence"}'
 ```
 
-## 🧪 Technologies & Libraries
+## Technologies & Libraries
 
 - **FastAPI**: Modern, fast web framework for building APIs
 - **spaCy**: Industrial-strength natural language processing
@@ -139,40 +139,10 @@ curl -X POST "http://127.0.0.1:8000/similarity" \
 - **Pydantic**: Data validation using Python type annotations
 - **uvicorn**: ASGI server for FastAPI applications
 
-## 📋 Assignment Submission Guidelines
 
-1. **Code Quality**: Follow PEP 8 standards and include docstrings
-2. **Documentation**: Update README for any new features or modules
-3. **Testing**: Include test cases for critical functionality
-4. **Reproducibility**: Ensure all dependencies are properly documented
 
-## 🎯 Learning Objectives
 
-By the end of this course, students will be able to:
-
-- ✅ Understand mathematical foundations of generative AI
-- ✅ Implement statistical language models from scratch
-- ✅ Work with modern word embedding techniques
-- ✅ Build production-ready AI APIs
-- ✅ Integrate multiple AI services and models
-- ✅ Deploy and maintain AI applications
-
-## 📧 Course Information
-
-- **Course**: Generative AI Fundamentals
-- **Repository**: https://github.com/yuanmingchen922/genai
-- **Language**: Python 3.8+
-- **License**: Educational Use
-
-## 🤝 Contributing
-
-This repository is primarily for coursework, but suggestions and improvements are welcome:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your improvements
-4. Submit a pull request
 
 ---
 
-**Note**: This repository is maintained for educational purposes as part of a Generative AI course curriculum.
+**Note**: This repository is created by Mingchen Yuan (yuanmingchen922). Feel free to contact me in the following ways: **yuanmingchen922@gmail.com**, and **my2878@columbia.edu**
