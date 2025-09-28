@@ -145,4 +145,4 @@ curl -X POST "http://127.0.0.1:8000/similarity" \
 
 ---
 
-**Note**: This repository is created by Mingchen Yuan (yuanmingchen922). Feel free to contact me in the following ways: **yuanmingchen922@gmail.com**, and **my2878@columbia.edu**
+**Note**: This repository is created by Mingchen Yuan (yuanmingchen922). Feel free to contact me in the following ways: **yuanmingchen922@gmail.com**, **my2878@columbia.edu**, and **mingcy@umich.edu**
