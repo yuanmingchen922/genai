@@ -1,7 +1,8 @@
+# https://platform.openai.com/docs/overview
 from openai import OpenAI
 import os
 
-# 检查是否设置了 API 密钥
+
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
     print("错误: 请设置 OPENAI_API_KEY 环境变量")
