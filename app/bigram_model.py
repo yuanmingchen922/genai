@@ -8,7 +8,7 @@ class TextGenerationRequest(BaseModel):
 
 class WordEmbeddingRequest(BaseModel):
     word: str
-    return_size: Optional[int] = 10 
+    return_size: Optional[int] = 10  
 
 class SimilarityRequest(BaseModel):
     word1: str
