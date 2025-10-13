@@ -9,7 +9,7 @@ import torch.optim as optim
 
 # Import helper modules
 from helper.data_loader import load_fashion_mnist, get_dataset_info
-from helper.model import SimpleNN, SimpleCNN
+from helper.GAN_model import SimpleNN, SimpleCNN
 from helper.trainer import train_model
 from helper.evaluator import evaluate_model
 

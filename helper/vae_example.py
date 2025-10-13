@@ -9,7 +9,7 @@ import numpy as np
 
 # Import helper modules
 from helper.data_loader import load_fashion_mnist, get_dataset_info
-from helper.model import VAE
+from helper.GAN_model import VAE
 from helper.trainer import train_vae_model
 from helper.generator import (
     generate_samples,

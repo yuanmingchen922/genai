@@ -8,3 +8,4 @@ wheels/
 
 # Virtual environments
 .venv
+en_core_web_lg-3.7.1-py3-none-any.whl

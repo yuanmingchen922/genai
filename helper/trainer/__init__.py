@@ -253,4 +253,142 @@ def train_vae_model(model, train_loader, optimizer, device, epochs=10, beta=500,
     return history
 
 
-__all__ = ['train_model', 'train_epoch', 'train_vae_model', 'vae_loss_function']
+def train_gan(generator, critic, train_loader, opt_gen, opt_critic, device, epochs=10, 
+              n_critic=5, clip_value=0.01, z_dim=100, verbose=True):
+    """
+    Train a WGAN (Wasserstein GAN) model.
+    
+    Args:
+        generator (nn.Module): Generator network
+        critic (nn.Module): Critic/Discriminator network
+        train_loader (DataLoader): DataLoader for training data
+        opt_gen: Generator optimizer
+        opt_critic: Critic optimizer  
+        device (str or torch.device): Device to train on
+        epochs (int): Number of training epochs. Default: 10
+        n_critic (int): Number of critic updates per generator update. Default: 5
+        clip_value (float): Weight clipping value for WGAN. Default: 0.01
+        z_dim (int): Dimension of noise vector. Default: 100
+        verbose (bool): If True, print training progress. Default: True
+    
+    Returns:
+        dict: Dictionary containing training history with keys:
+              - 'gen_loss': List of generator loss per batch
+              - 'critic_loss': List of critic loss per batch
+              - 'epochs_completed': Number of epochs completed
+    
+    Example:
+        >>> from helper.model import Generator, Critic
+        >>> generator = Generator(z_dim=100).to(device)
+        >>> critic = Critic().to(device)
+        >>> opt_gen = torch.optim.RMSprop(generator.parameters(), lr=5e-5)
+        >>> opt_critic = torch.optim.RMSprop(critic.parameters(), lr=5e-5)
+        >>> history = train_gan(generator, critic, train_loader, opt_gen, opt_critic, device)
+    """
+    generator.to(device)
+    critic.to(device)
+    
+    history = {
+        'gen_loss': [],
+        'critic_loss': [],
+        'epochs_completed': 0
+    }
+    
+    # Fixed noise for visualization
+    fixed_noise = torch.randn(64, z_dim).to(device)
+    
+    for epoch in range(epochs):
+        if verbose:
+            progress_bar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{epochs}')
+        else:
+            progress_bar = train_loader
+            
+        for batch_idx, (real, _) in enumerate(progress_bar):
+            real = real.to(device)
+            batch_size = real.size(0)
+            
+            # Train Critic multiple times
+            for _ in range(n_critic):
+                # Generate fake images
+                noise = torch.randn(batch_size, z_dim).to(device)
+                fake = generator(noise).detach()  # detach to avoid training generator
+                
+                # Critic scores
+                critic_real = critic(real).mean()
+                critic_fake = critic(fake).mean()
+                
+                # WGAN loss: maximize real scores, minimize fake scores
+                loss_critic = -(critic_real - critic_fake)
+                
+                # Update critic
+                critic.zero_grad()
+                loss_critic.backward()
+                opt_critic.step()
+                
+                # Weight clipping for WGAN
+                for p in critic.parameters():
+                    p.data.clamp_(-clip_value, clip_value)
+            
+            # Train Generator
+            noise = torch.randn(batch_size, z_dim).to(device)
+            fake = generator(noise)
+            
+            # Generator loss: maximize critic scores for fake images
+            loss_gen = -critic(fake).mean()
+            
+            # Update generator
+            generator.zero_grad()
+            loss_gen.backward()
+            opt_gen.step()
+            
+            # Record losses
+            history['gen_loss'].append(loss_gen.item())
+            history['critic_loss'].append(loss_critic.item())
+            
+            # Update progress bar
+            if verbose:
+                progress_bar.set_postfix({
+                    'G_loss': f'{loss_gen.item():.4f}',
+                    'C_loss': f'{loss_critic.item():.4f}'
+                })
+            
+            # Print progress
+            if batch_idx % 100 == 0 and verbose:
+                print(f"[Epoch {epoch+1}/{epochs}] [Batch {batch_idx}/{len(train_loader)}] "
+                      f"[D loss: {loss_critic.item():.4f}] [G loss: {loss_gen.item():.4f}]")
+        
+        history['epochs_completed'] = epoch + 1
+        
+        if verbose:
+            print(f'Epoch {epoch+1}/{epochs} completed')
+    
+    if verbose:
+        print("Finished GAN Training")
+    
+    return history
+
+
+def generate_gan_samples(generator, num_samples=64, z_dim=100, device='cpu'):
+    """
+    Generate samples using a trained GAN generator.
+    
+    Args:
+        generator (nn.Module): Trained generator network
+        num_samples (int): Number of samples to generate. Default: 64
+        z_dim (int): Dimension of noise vector. Default: 100
+        device (str or torch.device): Device to generate on. Default: 'cpu'
+    
+    Returns:
+        torch.Tensor: Generated images
+    
+    Example:
+        >>> samples = generate_gan_samples(generator, num_samples=16, device='cuda')
+    """
+    generator.eval()
+    with torch.no_grad():
+        noise = torch.randn(num_samples, z_dim).to(device)
+        samples = generator(noise)
+    return samples
+
+
+__all__ = ['train_model', 'train_epoch', 'train_vae_model', 'vae_loss_function', 'train_gan', 'generate_gan_samples']

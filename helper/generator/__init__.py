@@ -247,10 +247,167 @@ def interpolate_latent(model, z1, z2, num_steps=10, device='cpu'):
     return images.cpu().numpy()
 
 
+def generate_gan_samples(generator, num_samples=64, z_dim=100, device='cpu', return_tensor=False):
+    """
+    Generate samples using a trained GAN generator.
+    
+    Args:
+        generator: Trained GAN generator model
+        num_samples (int): Number of samples to generate. Default: 64
+        z_dim (int): Dimension of the noise vector. Default: 100
+        device (str or torch.device): Device to generate on. Default: 'cpu'
+        return_tensor (bool): If True, return torch tensor; otherwise numpy array. Default: False
+    
+    Returns:
+        torch.Tensor or np.ndarray: Generated images
+    
+    Example:
+        >>> from helper.model import Generator
+        >>> generator = Generator(z_dim=100)
+        >>> samples = generate_gan_samples(generator, num_samples=16, device='cuda')
+    """
+    generator.eval()
+    with torch.no_grad():
+        noise = torch.randn(num_samples, z_dim).to(device)
+        samples = generator(noise)
+        
+        if return_tensor:
+            return samples
+        else:
+            return samples.cpu().numpy()
+
+
+def visualize_gan_progress(generator, fixed_noise, epoch, device='cpu', save_path=None):
+    """
+    Visualize GAN training progress using fixed noise.
+    
+    Args:
+        generator: GAN generator model
+        fixed_noise (torch.Tensor): Fixed noise vectors for consistent visualization
+        epoch (int): Current epoch number
+        device (str or torch.device): Device to use. Default: 'cpu'
+        save_path (str): Path to save the figure. If None, display only. Default: None
+    
+    Example:
+        >>> fixed_noise = torch.randn(64, 100).to(device)
+        >>> visualize_gan_progress(generator, fixed_noise, epoch=5, device='cuda')
+    """
+    generator.eval()
+    with torch.no_grad():
+        fake_images = generator(fixed_noise).detach().cpu()
+    
+    # Denormalize images from [-1, 1] to [0, 1]
+    fake_images = (fake_images + 1) / 2
+    
+    # Create grid
+    from torchvision.utils import make_grid
+    grid = make_grid(fake_images, nrow=8, normalize=True, padding=2)
+    
+    # Plot
+    plt.figure(figsize=(12, 12))
+    plt.imshow(grid.permute(1, 2, 0))
+    plt.title(f"Generated Images - Epoch {epoch}")
+    plt.axis('off')
+    
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=150)
+        print(f"Saved GAN progress to {save_path}")
+    
+    plt.show()
+
+
+def compare_real_fake(real_images, fake_images, num_samples=8, save_path=None):
+    """
+    Compare real and generated images side by side.
+    
+    Args:
+        real_images (torch.Tensor): Real images batch
+        fake_images (torch.Tensor): Generated images batch  
+        num_samples (int): Number of sample pairs to show. Default: 8
+        save_path (str): Path to save the figure. If None, display only. Default: None
+    
+    Example:
+        >>> compare_real_fake(real_batch, fake_batch, num_samples=5)
+    """
+    # Take first num_samples from each batch
+    real_images = real_images[:num_samples].cpu()
+    fake_images = fake_images[:num_samples].cpu()
+    
+    # Denormalize if needed (assuming [-1, 1] range)
+    if real_images.min() < -0.5:
+        real_images = (real_images + 1) / 2
+    if fake_images.min() < -0.5:
+        fake_images = (fake_images + 1) / 2
+    
+    # Create comparison grid
+    fig, axes = plt.subplots(2, num_samples, figsize=(num_samples * 2, 4))
+    
+    for i in range(num_samples):
+        # Real images (top row)
+        axes[0, i].imshow(real_images[i].permute(1, 2, 0))
+        axes[0, i].set_title('Real')
+        axes[0, i].axis('off')
+        
+        # Fake images (bottom row)
+        axes[1, i].imshow(fake_images[i].permute(1, 2, 0))
+        axes[1, i].set_title('Generated')
+        axes[1, i].axis('off')
+    
+    plt.tight_layout()
+    
+    if save_path:
+        plt.savefig(save_path, bbox_inches='tight', dpi=150)
+        print(f"Saved real vs fake comparison to {save_path}")
+    
+    plt.show()
+
+
+def interpolate_gan_latent(generator, z1, z2, num_steps=10, device='cpu'):
+    """
+    Interpolate between two noise vectors in GAN latent space.
+    
+    Args:
+        generator: Trained GAN generator
+        z1 (torch.Tensor): First noise vector
+        z2 (torch.Tensor): Second noise vector
+        num_steps (int): Number of interpolation steps. Default: 10
+        device (str or torch.device): Device to use. Default: 'cpu'
+    
+    Returns:
+        np.ndarray: Interpolated images
+    
+    Example:
+        >>> z1 = torch.randn(1, 100)
+        >>> z2 = torch.randn(1, 100)
+        >>> interpolated = interpolate_gan_latent(generator, z1, z2, num_steps=10)
+    """
+    generator.eval()
+    
+    # Create interpolation points
+    alphas = torch.linspace(0, 1, num_steps).to(device)
+    z_interp = []
+    
+    for alpha in alphas:
+        z = (1 - alpha) * z1 + alpha * z2
+        z_interp.append(z)
+    
+    z_interp = torch.cat(z_interp, dim=0)
+    
+    # Generate interpolated images
+    with torch.no_grad():
+        images = generator(z_interp)
+    
+    return images.cpu().numpy()
+
+
 __all__ = [
     'generate_samples',
-    'generate_grid',
+    'generate_grid', 
     'visualize_samples',
     'visualize_reconstruction',
-    'interpolate_latent'
+    'interpolate_latent',
+    'generate_gan_samples',
+    'visualize_gan_progress',
+    'compare_real_fake',
+    'interpolate_gan_latent'
 ]
