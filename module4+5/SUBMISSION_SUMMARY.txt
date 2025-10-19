@@ -1,0 +1,56 @@
+Module 4 Assignment Submission Summary
+======================================
+
+Main Submission File:
+- module4+5/CNN  Architecture.py (Complete implementation)
+
+Supporting Files Created:
+- app/cnn_classifier.py (CNN model class)
+- app/train_cnn.py (Training script)
+- app/main.py (Updated API with image classification endpoints)
+- models/cnn_classifier.pth (Model weights)
+
+What's Implemented:
+==================
+
+Task 1: CNN Architecture ✓
+---------------------------
+- AssignmentCNN class matching exact specification
+- Input: 64×64×3 RGB images
+- Conv1: 16 filters, 3×3, stride=1, padding=1
+- ReLU + MaxPool 2×2
+- Conv2: 32 filters, 3×3, stride=1, padding=1
+- ReLU + MaxPool 2×2
+- Flatten → 8192 features
+- FC1: 100 units + ReLU
+- FC2: 10 units (output)
+- Total Parameters: 825,398
+
+Task 2: Model Deployment ✓
+---------------------------
+- Training function for CIFAR-10 dataset
+- Images resized from 32×32 to 64×64
+- CNNImageClassifier class for inference
+- API integration with 2 endpoints:
+  * POST /classify-image (base64)
+  * POST /classify-image-file (file upload)
+
+CIFAR-10 Classes:
+-----------------
+airplane, automobile, bird, cat, deer, 
+dog, frog, horse, ship, truck
+
+How to Use:
+===========
+
+1. Verify Architecture:
+   python "module4+5/CNN  Architecture.py"
+
+2. Train Model:
+   python -m app.train_cnn --epochs 10
+
+3. Start API:
+   uvicorn app.main:app --reload
+   Visit: http://localhost:8000/docs
+
+All functionality tested and working!

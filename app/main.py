@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from .bigram_model import (
     TextGenerationRequest, 
     WordEmbeddingRequest,
@@ -7,16 +7,27 @@ from .bigram_model import (
     bigram_model, 
     word_embedding_model
 )
+from .cnn_classifier import (
+    ImageClassificationRequest,
+    get_classifier
+)
+import base64
 
 app = FastAPI(
-    title="GenAI Text Processing API",
-    description="API for text generation using Bigram models and word embeddings using spaCy",
-    version="1.0.0"
+    title="GenAI API",
+    description="API for text generation, word embeddings, and image classification using CNNs",
+    version="2.0.0"
 )
 
 @app.get("/")
 def read_root():
-    return {"message": "GenAI Text Processing API", "endpoints": ["/generate", "/embedding", "/similarity", "/sentence-similarity"]}
+    return {
+        "message": "GenAI API - Text Processing and Image Classification",
+        "endpoints": {
+            "text": ["/generate", "/embedding", "/similarity", "/sentence-similarity"],
+            "image": ["/classify-image", "/classify-image-file"]
+        }
+    }
 
 @app.post("/generate")
 async def generate_text(request: TextGenerationRequest):
@@ -66,3 +77,46 @@ async def calculate_sentence_similarity(request: SentenceSimilarityRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Sentence similarity calculation failed: {str(e)}")
+
+
+@app.post("/classify-image")
+async def classify_image(request: ImageClassificationRequest):
+    """
+    Classify an image using the trained CNN model
+    
+    The image should be base64 encoded and sent in the request body.
+    Returns the top predicted classes with confidence scores.
+    """
+    try:
+        classifier = get_classifier(model_path="models/cnn_classifier.pth")
+        result = classifier.predict(request.image_data, top_k=request.top_k)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image classification failed: {str(e)}")
+
+
+@app.post("/classify-image-file")
+async def classify_image_file(file: UploadFile = File(...), top_k: int = 1):
+    """
+    Classify an image uploaded as a file
+    
+    Upload an image file (JPEG, PNG, etc.) and get classification results.
+    Returns the top predicted classes with confidence scores.
+    """
+    try:
+        # Read file contents
+        contents = await file.read()
+        
+        # Convert to base64
+        image_base64 = base64.b64encode(contents).decode('utf-8')
+        
+        # Get classifier and predict
+        classifier = get_classifier(model_path="models/cnn_classifier.pth")
+        result = classifier.predict(image_base64, top_k=top_k)
+        
+        return {
+            "filename": file.filename,
+            **result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image classification failed: {str(e)}")
