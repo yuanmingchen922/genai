@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  genai-api:
+    build: .
+    container_name: genai-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models
+      - ./app:/app/app
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped

@@ -7,6 +7,7 @@ from .bigram_model import (
     bigram_model, 
     word_embedding_model
 )
+from .rnn_model import rnn_generator
 from .cnn_classifier import (
     ImageClassificationRequest,
     get_classifier
@@ -15,7 +16,7 @@ import base64
 
 app = FastAPI(
     title="GenAI API",
-    description="API for text generation, word embeddings, and image classification using CNNs",
+    description="API for text generation (Bigram & RNN), word embeddings, and image classification using CNNs",
     version="2.0.0"
 )
 
@@ -24,7 +25,13 @@ def read_root():
     return {
         "message": "GenAI API - Text Processing and Image Classification",
         "endpoints": {
-            "text": ["/generate", "/embedding", "/similarity", "/sentence-similarity"],
+            "text": [
+                "/generate", 
+                "/generate_with_rnn",
+                "/embedding", 
+                "/similarity", 
+                "/sentence-similarity"
+            ],
             "image": ["/classify-image", "/classify-image-file"]
         }
     }
@@ -37,6 +44,25 @@ async def generate_text(request: TextGenerationRequest):
         return {"generated_text": generated_text, "start_word": request.start_word, "length": request.length}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
+
+
+@app.post("/generate_with_rnn")
+async def generate_with_rnn(request: TextGenerationRequest):
+    """Generate text using RNN/LSTM model"""
+    try:
+        generated_text = rnn_generator.generate_text(
+            seed_text=request.start_word, 
+            length=request.length,
+            temperature=1.0
+        )
+        return {
+            "generated_text": generated_text, 
+            "start_word": request.start_word, 
+            "length": request.length,
+            "model": "LSTM"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"RNN text generation failed: {str(e)}")
 
 @app.post("/embedding")
 async def get_word_embedding(request: WordEmbeddingRequest):
