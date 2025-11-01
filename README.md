@@ -1,4 +1,4 @@
-## This repocis for Gen AI class
+## This repo is for Gen AI class
 
 ### Author: Mingchen Yuan, my2878@columbia.edu
 
