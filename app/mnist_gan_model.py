@@ -1,7 +1,4 @@
-"""
-MNIST GAN Model for hand-written digit generation
-Implements a GAN trained on MNIST dataset for generating synthetic digits
-"""
+
 
 import torch
 import torch.nn as nn

@@ -13,15 +13,16 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements file
 COPY requirements.txt .
 
-# Install Python dependencies
+# Install Python dependencies including spaCy model from URL
 RUN pip install --no-cache-dir -r requirements.txt
-
-# Download spaCy model
-RUN python -m spacy download en_core_web_lg
 
 # Copy application code
 COPY app/ ./app/
 COPY models/ ./models/
+COPY data/ ./data/
+
+# Create directories if they don't exist
+RUN mkdir -p /app/models /app/data
 
 # Expose port
 EXPOSE 8000

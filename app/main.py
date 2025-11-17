@@ -47,6 +47,16 @@ def read_root():
         }
     }
 
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint for Docker container monitoring"""
+    return {
+        "status": "healthy",
+        "service": "genai-api",
+        "version": "3.0.0"
+    }
+
 @app.post("/generate")
 async def generate_text(request: TextGenerationRequest):
     """Generate text using Bigram model"""
@@ -188,7 +198,7 @@ async def generate_digit(request: DigitGenerationRequest):
         Base64 encoded PNG image of the generated digit.
     """
     try:
-        gan_generator = get_mnist_gan_generator(model_path="models/generator_mnist_gan.pth")
+        gan_generator = get_mnist_gan_generator(model_path="models/generator_gan.pth")
         image_base64 = gan_generator.generate_digit(digit=request.digit, seed=request.seed)
         
         return {
@@ -217,7 +227,7 @@ async def generate_digits_batch(request: BatchGenerationRequest):
         Base64 encoded PNG image(s) of the generated digits.
     """
     try:
-        gan_generator = get_mnist_gan_generator(model_path="models/generator_mnist_gan.pth")
+        gan_generator = get_mnist_gan_generator(model_path="models/generator_gan.pth")
         
         if request.grid:
             grid_image = gan_generator.generate_batch(batch_size=request.batch_size, grid=True)
@@ -250,7 +260,7 @@ async def get_gan_model_info():
         Model architecture and parameter information.
     """
     try:
-        gan_generator = get_mnist_gan_generator(model_path="models/generator_mnist_gan.pth")
+        gan_generator = get_mnist_gan_generator(model_path="models/generator_gan.pth")
         model_info = gan_generator.get_model_info()
         
         return {

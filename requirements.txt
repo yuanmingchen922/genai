@@ -4,7 +4,9 @@ pydantic==2.5.0
 torch==2.1.0
 torchvision==0.16.0
 spacy==3.7.2
+en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.7.1/en_core_web_lg-3.7.1-py3-none-any.whl
 numpy==1.24.3
 Pillow==10.1.0
 requests==2.31.0
 python-multipart==0.0.6
+tqdm>=4.66.0
