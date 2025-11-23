@@ -14,13 +14,16 @@ from .cnn_classifier import (
     get_classifier
 )
 from .mnist_gan_model import get_mnist_gan_generator
+from .diffusion_model import get_diffusion_model
+from .energy_model import get_energy_model
 import base64
 from typing import Optional
+import torch
 
 app = FastAPI(
     title="GenAI API",
-    description="API for text generation (Bigram & RNN), word embeddings, image classification (CNN), and image generation (GAN)",
-    version="3.0.0"
+    description="API for text generation (Bigram & RNN), word embeddings, image classification (CNN), and image generation (GAN, Diffusion, Energy)",
+    version="4.0.0"
 )
 
 @app.get("/")
@@ -42,7 +45,11 @@ def read_root():
             "image_generation": [
                 "/generate-digit",
                 "/generate-digits-batch",
-                "/gan-model-info"
+                "/gan-model-info",
+                "/generate-diffusion",
+                "/generate-energy",
+                "/diffusion-model-info",
+                "/energy-model-info"
             ]
         }
     }
@@ -269,3 +276,237 @@ async def get_gan_model_info():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get model info: {str(e)}")
+
+
+# ============================================================================
+# Diffusion Model Endpoints
+# ============================================================================
+
+class DiffusionGenerationRequest(BaseModel):
+    """Request model for diffusion generation"""
+    num_samples: int = Field(8, ge=1, le=64, description="Number of images to generate")
+    seed: Optional[int] = Field(None, description="Random seed for reproducibility")
+
+
+@app.post("/generate-diffusion")
+async def generate_diffusion(request: DiffusionGenerationRequest):
+    """
+    Generate images using Diffusion Model (DDPM).
+    
+    Generates CIFAR-10 style images (32x32 RGB) using denoising diffusion.
+    
+    Args:
+        num_samples: Number of images to generate (1-64)
+        seed: Optional random seed for reproducibility
+    
+    Returns:
+        Base64 encoded PNG images of generated samples.
+    """
+    try:
+        # Set device
+        device = torch.device('cuda' if torch.cuda.is_available() else 
+                            'mps' if torch.backends.mps.is_available() else 'cpu')
+        
+        # Load diffusion model
+        diffusion = get_diffusion_model(device)
+        
+        # Load trained weights if available
+        try:
+            checkpoint = torch.load("models/diffusion_cifar10_final.pth", map_location=device)
+            diffusion.model.load_state_dict(checkpoint['model_state_dict'])
+        except:
+            # If no trained model, use untrained (will generate random patterns)
+            pass
+        
+        # Set seed if provided
+        if request.seed is not None:
+            torch.manual_seed(request.seed)
+        
+        # Generate samples
+        samples = diffusion.sample(request.num_samples, 3, 32, 32)
+        
+        # Convert to base64
+        # Denormalize from [-1, 1] to [0, 1]
+        samples = (samples + 1) / 2
+        samples = torch.clamp(samples, 0, 1)
+        
+        # Create grid
+        from torchvision.utils import make_grid
+        from PIL import Image
+        import io
+        
+        grid = make_grid(samples, nrow=4, padding=2)
+        grid_np = (grid.permute(1, 2, 0).cpu().numpy() * 255).astype('uint8')
+        
+        # Convert to base64
+        img = Image.fromarray(grid_np)
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
+        return {
+            "success": True,
+            "image": img_base64,
+            "format": "base64_png",
+            "num_samples": request.num_samples,
+            "image_size": "32x32",
+            "model": "DDPM (Denoising Diffusion Probabilistic Model)",
+            "seed": request.seed
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Diffusion generation failed: {str(e)}")
+
+
+@app.get("/diffusion-model-info")
+async def get_diffusion_model_info():
+    """
+    Get information about the Diffusion Model.
+    
+    Returns:
+        Model architecture and parameter information.
+    """
+    try:
+        device = torch.device('cuda' if torch.cuda.is_available() else 
+                            'mps' if torch.backends.mps.is_available() else 'cpu')
+        
+        diffusion = get_diffusion_model(device)
+        
+        num_params = sum(p.numel() for p in diffusion.model.parameters())
+        
+        return {
+            "success": True,
+            "model_type": "Denoising Diffusion Probabilistic Model (DDPM)",
+            "architecture": "UNet with Time Embeddings",
+            "parameters": num_params,
+            "timesteps": diffusion.timesteps,
+            "beta_schedule": "linear",
+            "beta_start": 0.0001,
+            "beta_end": 0.02,
+            "image_size": "32x32",
+            "channels": 3,
+            "dataset": "CIFAR-10",
+            "device": str(device)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get diffusion model info: {str(e)}")
+
+
+# ============================================================================
+# Energy-Based Model Endpoints
+# ============================================================================
+
+class EnergyGenerationRequest(BaseModel):
+    """Request model for energy-based generation"""
+    num_samples: int = Field(8, ge=1, le=64, description="Number of images to generate")
+    langevin_steps: Optional[int] = Field(60, ge=10, le=200, description="Number of Langevin sampling steps")
+    seed: Optional[int] = Field(None, description="Random seed for reproducibility")
+
+
+@app.post("/generate-energy")
+async def generate_energy(request: EnergyGenerationRequest):
+    """
+    Generate images using Energy-Based Model with Langevin Sampling.
+    
+    Generates CIFAR-10 style images (32x32 RGB) using energy minimization.
+    
+    Args:
+        num_samples: Number of images to generate (1-64)
+        langevin_steps: Number of Langevin dynamics steps (10-200)
+        seed: Optional random seed for reproducibility
+    
+    Returns:
+        Base64 encoded PNG images of generated samples.
+    """
+    try:
+        # Set device
+        device = torch.device('cuda' if torch.cuda.is_available() else 
+                            'mps' if torch.backends.mps.is_available() else 'cpu')
+        
+        # Load energy model
+        energy_model = get_energy_model(device, use_improved=True)
+        
+        # Update Langevin steps if provided
+        if request.langevin_steps:
+            energy_model.langevin_steps = request.langevin_steps
+        
+        # Load trained weights if available
+        try:
+            checkpoint = torch.load("models/energy_cifar10_final.pth", map_location=device)
+            energy_model.model.load_state_dict(checkpoint['model_state_dict'])
+        except:
+            # If no trained model, use untrained
+            pass
+        
+        # Set seed if provided
+        if request.seed is not None:
+            torch.manual_seed(request.seed)
+        
+        # Generate samples via Langevin sampling
+        samples = energy_model.sample(request.num_samples, 3, 32, 32)
+        
+        # Convert to base64
+        # Denormalize from [-1, 1] to [0, 1]
+        samples = (samples + 1) / 2
+        samples = torch.clamp(samples, 0, 1)
+        
+        # Create grid
+        from torchvision.utils import make_grid
+        from PIL import Image
+        import io
+        
+        grid = make_grid(samples, nrow=4, padding=2)
+        grid_np = (grid.permute(1, 2, 0).cpu().numpy() * 255).astype('uint8')
+        
+        # Convert to base64
+        img = Image.fromarray(grid_np)
+        buffered = io.BytesIO()
+        img.save(buffered, format="PNG")
+        img_base64 = base64.b64encode(buffered.getvalue()).decode()
+        
+        return {
+            "success": True,
+            "image": img_base64,
+            "format": "base64_png",
+            "num_samples": request.num_samples,
+            "image_size": "32x32",
+            "model": "Energy-Based Model with Langevin Sampling",
+            "langevin_steps": energy_model.langevin_steps,
+            "seed": request.seed
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Energy-based generation failed: {str(e)}")
+
+
+@app.get("/energy-model-info")
+async def get_energy_model_info():
+    """
+    Get information about the Energy-Based Model.
+    
+    Returns:
+        Model architecture and parameter information.
+    """
+    try:
+        device = torch.device('cuda' if torch.cuda.is_available() else 
+                            'mps' if torch.backends.mps.is_available() else 'cpu')
+        
+        energy_model = get_energy_model(device, use_improved=True)
+        
+        num_params = sum(p.numel() for p in energy_model.model.parameters())
+        
+        return {
+            "success": True,
+            "model_type": "Energy-Based Model (EBM)",
+            "architecture": "Convolutional Energy Network with Spectral Normalization",
+            "parameters": num_params,
+            "sampling_method": "Langevin Dynamics",
+            "langevin_steps": energy_model.langevin_steps,
+            "langevin_lr": energy_model.langevin_lr,
+            "langevin_noise": energy_model.langevin_noise,
+            "image_size": "32x32",
+            "channels": 3,
+            "dataset": "CIFAR-10",
+            "training_method": "Contrastive Divergence",
+            "device": str(device)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get energy model info: {str(e)}")
