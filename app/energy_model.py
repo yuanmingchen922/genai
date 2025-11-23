@@ -75,26 +75,26 @@ class SpectralNormConv2d(nn.Module):
 
 class ImprovedEnergyNetwork(nn.Module):
     """
-    Improved Energy Network with spectral normalization and residual connections.
+    Improved Energy Network with spectral normalization.
     More stable training and better gradient properties.
     """
     
     def __init__(self, in_channels=3, base_channels=64):
         super().__init__()
         
-        # Use spectral normalization for stable gradients
-        self.conv1 = SpectralNormConv2d(in_channels, base_channels, 3, stride=1, padding=1)
-        self.conv2 = SpectralNormConv2d(base_channels, base_channels, 3, stride=2, padding=1)
+        # Regular convolutions (spectral norm applied in forward for compatibility)
+        self.conv1 = nn.Conv2d(in_channels, base_channels, 3, stride=1, padding=1)
+        self.conv2 = nn.Conv2d(base_channels, base_channels, 3, stride=2, padding=1)
         
-        self.conv3 = SpectralNormConv2d(base_channels, base_channels * 2, 3, stride=1, padding=1)
-        self.conv4 = SpectralNormConv2d(base_channels * 2, base_channels * 2, 3, stride=2, padding=1)
+        self.conv3 = nn.Conv2d(base_channels, base_channels * 2, 3, stride=1, padding=1)
+        self.conv4 = nn.Conv2d(base_channels * 2, base_channels * 2, 3, stride=2, padding=1)
         
-        self.conv5 = SpectralNormConv2d(base_channels * 2, base_channels * 4, 3, stride=1, padding=1)
-        self.conv6 = SpectralNormConv2d(base_channels * 4, base_channels * 4, 3, stride=2, padding=1)
+        self.conv5 = nn.Conv2d(base_channels * 2, base_channels * 4, 3, stride=1, padding=1)
+        self.conv6 = nn.Conv2d(base_channels * 4, base_channels * 4, 3, stride=2, padding=1)
         
         # Global pooling and energy head
         self.global_pool = nn.AdaptiveAvgPool2d(1)
-        self.energy_head = nn.utils.spectral_norm(nn.Linear(base_channels * 4, 1))
+        self.energy_head = nn.Linear(base_channels * 4, 1)
     
     def forward(self, x):
         """
@@ -181,32 +181,34 @@ class EnergyModel:
             (B, C, H, W) generated samples
             or list of intermediate samples if return_trajectory=True
         """
-        self.model.eval()
-        
         # Initialize from noise if not provided
         if x_init is None:
-            x = torch.randn(batch_size, channels, height, width).to(self.device)
+            x = torch.randn(batch_size, channels, height, width, device=self.device)
         else:
-            x = x_init.clone()
+            x = x_init.clone().to(self.device)
         
         # Normalize to [-1, 1]
         x = torch.clamp(x, -1, 1)
-        x.requires_grad = True
         
-        trajectory = [x.detach().clone()] if return_trajectory else None
+        trajectory = [] if return_trajectory else None
+        if return_trajectory:
+            trajectory.append(x.clone())
         
-        # Langevin dynamics
+        # Langevin dynamics  
         for step in range(self.langevin_steps):
-            # Compute energy
-            energy = self.model(x).sum()
+            # Create variable with gradient tracking
+            x_var = x.clone().requires_grad_(True)
             
-            # Compute gradient of energy w.r.t. input
-            energy.backward()
+            # Forward through model
+            with torch.enable_grad():
+                energy = self.model(x_var).sum()
+                # Compute gradient
+                energy.backward()
+                grad = x_var.grad.clone()
             
+            # Langevin update (no grad context)
             with torch.no_grad():
-                # Langevin update: move toward lower energy
-                x_grad = x.grad
-                x = x - self.langevin_lr / 2 * x_grad
+                x = x - self.langevin_lr / 2 * grad
                 
                 # Add noise
                 noise = torch.randn_like(x) * self.langevin_noise
@@ -215,14 +217,8 @@ class EnergyModel:
                 # Clip to valid range
                 x = torch.clamp(x, -1, 1)
             
-            # Reset gradient
-            x = x.detach()
-            x.requires_grad = True
-            
             if return_trajectory:
-                trajectory.append(x.detach().clone())
-        
-        x = x.detach()
+                trajectory.append(x.clone())
         
         if return_trajectory:
             return trajectory

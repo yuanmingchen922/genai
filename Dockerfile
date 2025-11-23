@@ -18,11 +18,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY app/ ./app/
-COPY models/ ./models/
-COPY data/ ./data/
+COPY helper/ ./helper/
 
-# Create directories if they don't exist
+# Create directories
 RUN mkdir -p /app/models /app/data
+
+# Copy models if they exist (optional, for inference)
+COPY models/ ./models/ 2>/dev/null || echo "No models directory, will train or use untrained models"
 
 # Expose port
 EXPOSE 8000

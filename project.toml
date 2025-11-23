@@ -1,7 +1,7 @@
 [project]
 name = "genai"
-version = "0.1.0"
-description = "MNIST GAN, FastAPI, Docker"
+version = "4.0.0"
+description = "Advanced Generative AI: GAN, Diffusion, Energy-Based Models with FastAPI"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -21,6 +21,8 @@ dependencies = [
     "tqdm>=4.66.0",
     "uvicorn>=0.24.0",
     "python-multipart>=0.0.6",
+    "jupyter>=1.0.0",
+    "notebook>=7.0.0",
 ]
 
 [project.optional-dependencies]
@@ -36,7 +38,10 @@ dev-dependencies = []
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# Assignment History:
 # Task 2 (2025-11-01): MNIST GAN Implementation
-# Generator: 765,761 params | Discriminator: 138,817 params
-# API: /generate-digit, /generate-digits-batch, /gan-model-info
-# Tests: 14/14 passed | Accuracy: 100%
+# Task 4 (2025-11-23): Diffusion & Energy-Based Models
+#   - DDPM (Denoising Diffusion Probabilistic Model) on CIFAR-10
+#   - Energy-Based Model with Langevin Sampling
+#   - API endpoints: /generate-diffusion, /generate-energy
+#   - Complete theory answers in Jupyter notebook

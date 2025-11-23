@@ -439,16 +439,76 @@ class DiffusionModel:
         return x
 
 
+# Simplified UNet for easier use
+class SimpleUNet(nn.Module):
+    """Simplified UNet for CIFAR-10."""
+    
+    def __init__(self, in_channels=3, out_channels=3, time_emb_dim=128):
+        super().__init__()
+        
+        self.time_embed = nn.Sequential(
+            SinusoidalTimeEmbedding(time_emb_dim),
+            nn.Linear(time_emb_dim, time_emb_dim * 4),
+            nn.ReLU(),
+            nn.Linear(time_emb_dim * 4, time_emb_dim * 4)
+        )
+        
+        self.init_conv = nn.Conv2d(in_channels, 64, 3, padding=1)
+        self.down1 = ResidualBlock(64, 128, time_emb_dim * 4)
+        self.down2 = ResidualBlock(128, 256, time_emb_dim * 4)
+        self.downsample1 = nn.Conv2d(128, 128, 3, stride=2, padding=1)
+        self.downsample2 = nn.Conv2d(256, 256, 3, stride=2, padding=1)
+        
+        self.mid1 = ResidualBlock(256, 256, time_emb_dim * 4)
+        self.mid_attn = AttentionBlock(256)
+        self.mid2 = ResidualBlock(256, 256, time_emb_dim * 4)
+        
+        self.up1 = ResidualBlock(512, 128, time_emb_dim * 4)
+        self.up2 = ResidualBlock(256, 64, time_emb_dim * 4)
+        self.upsample1 = nn.ConvTranspose2d(256, 256, 4, stride=2, padding=1)
+        self.upsample2 = nn.ConvTranspose2d(128, 128, 4, stride=2, padding=1)
+        
+        self.final_norm = nn.GroupNorm(8, 64)
+        self.final_conv = nn.Conv2d(64, out_channels, 3, padding=1)
+    
+    def forward(self, x, t):
+        t_emb = self.time_embed(t)
+        x = self.init_conv(x)
+        skip0 = x
+        
+        x = self.down1(x, t_emb)
+        skip1 = x
+        x = self.downsample1(x)
+        
+        x = self.down2(x, t_emb)
+        skip2 = x
+        x = self.downsample2(x)
+        
+        x = self.mid1(x, t_emb)
+        x = self.mid_attn(x)
+        x = self.mid2(x, t_emb)
+        
+        x = self.upsample1(x)
+        x = torch.cat([x, skip2], dim=1)
+        x = self.up1(x, t_emb)
+        
+        x = self.upsample2(x)
+        x = torch.cat([x, skip1], dim=1)
+        x = self.up2(x, t_emb)
+        
+        x = self.final_norm(x)
+        x = F.relu(x)
+        x = self.final_conv(x)
+        
+        return x
+
+
 def get_diffusion_model(device='cpu'):
     """Create and return a Diffusion Model instance."""
-    unet = UNet(
+    unet = SimpleUNet(
         in_channels=3,
         out_channels=3,
-        base_channels=64,
-        time_emb_dim=128,
-        channel_multipliers=(1, 2, 2, 2),
-        num_res_blocks=2,
-        use_attention=(False, False, True, True)
+        time_emb_dim=128
     ).to(device)
     
     diffusion = DiffusionModel(
