@@ -16,14 +16,15 @@ from .cnn_classifier import (
 from .mnist_gan_model import get_mnist_gan_generator
 from .diffusion_model import get_diffusion_model
 from .energy_model import get_energy_model
+from .gpt2_model import get_gpt2_model
 import base64
 from typing import Optional
 import torch
 
 app = FastAPI(
     title="GenAI API",
-    description="API for text generation (Bigram & RNN), word embeddings, image classification (CNN), and image generation (GAN, Diffusion, Energy)",
-    version="4.0.0"
+    description="API for text generation (Bigram, RNN, Fine-tuned GPT2), word embeddings, image classification (CNN), and image generation (GAN, Diffusion, Energy)",
+    version="5.0.0"
 )
 
 @app.get("/")
@@ -34,9 +35,11 @@ def read_root():
             "text": [
                 "/generate", 
                 "/generate_with_rnn",
+                "/generate-gpt2",
                 "/embedding", 
                 "/similarity", 
-                "/sentence-similarity"
+                "/sentence-similarity",
+                "/gpt2-model-info"
             ],
             "image_classification": [
                 "/classify-image", 
@@ -61,7 +64,7 @@ def health_check():
     return {
         "status": "healthy",
         "service": "genai-api",
-        "version": "3.0.0"
+        "version": "5.0.0"
     }
 
 @app.post("/generate")
@@ -510,3 +513,85 @@ async def get_energy_model_info():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get energy model info: {str(e)}")
+
+
+# ============================================================================
+# Fine-tuned GPT2 Text Generation Endpoints
+# ============================================================================
+
+class GPT2GenerationRequest(BaseModel):
+    """Request model for GPT2 text generation"""
+    question: str = Field(..., description="The question to answer")
+    max_new_tokens: int = Field(100, ge=10, le=500, description="Maximum number of tokens to generate")
+    temperature: float = Field(0.7, ge=0.1, le=2.0, description="Sampling temperature")
+    top_p: float = Field(0.9, ge=0.1, le=1.0, description="Nucleus sampling probability")
+
+
+@app.post("/generate-gpt2")
+async def generate_with_gpt2(request: GPT2GenerationRequest):
+    """
+    Generate a response using fine-tuned GPT2 model.
+    
+    The model is fine-tuned on SQuAD dataset to generate responses in a specific format:
+    - Starts with: "That is a great question!"
+    - Ends with: "Let me know if you have any other questions."
+    
+    Args:
+        question: The input question
+        max_new_tokens: Maximum tokens to generate (10-500)
+        temperature: Sampling temperature (0.1-2.0)
+        top_p: Nucleus sampling probability (0.1-1.0)
+    
+    Returns:
+        Generated response with the formatted answer.
+    """
+    try:
+        # Load model (uses cache)
+        model_path = "models/gpt2_finetuned"
+        gpt2_model = get_gpt2_model(model_path=model_path)
+        
+        # Generate response
+        response = gpt2_model.generate_response(
+            question=request.question,
+            max_new_tokens=request.max_new_tokens,
+            temperature=request.temperature,
+            top_p=request.top_p
+        )
+        
+        return {
+            "success": True,
+            "question": request.question,
+            "response": response,
+            "model": "GPT2 (Fine-tuned on SQuAD)",
+            "parameters": {
+                "max_new_tokens": request.max_new_tokens,
+                "temperature": request.temperature,
+                "top_p": request.top_p
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"GPT2 generation failed: {str(e)}")
+
+
+@app.get("/gpt2-model-info")
+async def get_gpt2_model_info():
+    """
+    Get information about the fine-tuned GPT2 model.
+    
+    Returns:
+        Model architecture and fine-tuning information.
+    """
+    try:
+        model_path = "models/gpt2_finetuned"
+        gpt2_model = get_gpt2_model(model_path=model_path)
+        
+        model_info = gpt2_model.get_model_info()
+        
+        return {
+            "success": True,
+            **model_info,
+            "fine_tuning_dataset": "SQuAD (Stanford Question Answering Dataset)",
+            "fine_tuning_source": "https://huggingface.co/datasets/rajpurkar/squad"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get GPT2 model info: {str(e)}")

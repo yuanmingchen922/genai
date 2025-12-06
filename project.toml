@@ -1,7 +1,7 @@
 [project]
 name = "genai"
-version = "4.0.0"
-description = "Advanced Generative AI: GAN, Diffusion, Energy-Based Models with FastAPI"
+version = "5.0.0"
+description = "Advanced Generative AI: GAN, Diffusion, Energy-Based Models, Fine-tuned GPT2 with FastAPI"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -23,6 +23,9 @@ dependencies = [
     "python-multipart>=0.0.6",
     "jupyter>=1.0.0",
     "notebook>=7.0.0",
+    "transformers>=4.35.0",
+    "datasets>=2.14.0",
+    "accelerate>=0.24.0",
 ]
 
 [project.optional-dependencies]
@@ -45,3 +48,7 @@ build-backend = "hatchling.build"
 #   - Energy-Based Model with Langevin Sampling
 #   - API endpoints: /generate-diffusion, /generate-energy
 #   - Complete theory answers in Jupyter notebook
+# Task 5 (2025-12-06): Fine-tuned GPT2 for QA
+#   - Fine-tune GPT2 on SQuAD dataset
+#   - Custom response format with prefix/suffix
+#   - API endpoint: /generate-gpt2, /gpt2-model-info

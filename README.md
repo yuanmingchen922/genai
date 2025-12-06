@@ -1,6 +1,15 @@
-# GenAI - Advanced Generative Models API
+# GenAI - Advanced Generative AI Project
 
-Complete implementation of modern generative AI models with FastAPI.
+A comprehensive FastAPI-based application for text generation and image generation using various deep learning models.
+
+## Features
+
+- **Text Generation**: Bigram, RNN/LSTM, and Fine-tuned GPT2 models
+- **Image Classification**: CNN classifier for CIFAR-10
+- **Image Generation**: GAN, Diffusion, and Energy-Based Models
+- **Question Answering**: GPT2 fine-tuned on SQuAD dataset
+
+## API Version: 5.0.0
 
 ## Quick Start
 
@@ -8,55 +17,28 @@ Complete implementation of modern generative AI models with FastAPI.
 # Install dependencies
 pip install -r requirements.txt
 
-# Verify installation
-python verify_all_models.py
-
 # Run API
 uvicorn app.main:app --reload
+
+# Access docs
+http://localhost:8000/docs
 ```
-
-Visit: http://localhost:8000/docs
-
-## Models
-
-- **Diffusion Model (DDPM)** - CIFAR-10 image generation
-- **Energy-Based Model** - Langevin sampling on CIFAR-10
-- **GAN** - MNIST digit generation
-- **CNN Classifier** - Image classification
-- **RNN/LSTM** - Text generation
 
 ## API Endpoints
 
+### Text Generation
+- `POST /generate` - Bigram model
+- `POST /generate_with_rnn` - RNN/LSTM model
+- `POST /generate-gpt2` - Fine-tuned GPT2
+
 ### Image Generation
-- POST `/generate-diffusion` - Diffusion model
-- POST `/generate-energy` - Energy-based model
-- POST `/generate-digit` - GAN digit generation
+- `POST /generate-digit` - GAN digit generation
+- `POST /generate-diffusion` - Diffusion model
+- `POST /generate-energy` - Energy-based model
 
-### Information
-- GET `/health` - Health check
-- GET `/diffusion-model-info` - Model details
-- GET `/energy-model-info` - Model details
+## Assignment History
 
-Full documentation: http://localhost:8000/docs
-
-## Assignment 4
-
-Main submission: `Assignments/Advanced_Image_Generation_my2878.ipynb`
-
-Includes:
-- Complete theory answers (Questions 1-9)
-- Full model implementations
-- Training scripts for CIFAR-10
-
-## Docker
-
-```bash
-docker-compose up --build -d
-```
-
-## Repository
-
-https://github.com/yuanmingchen922/genai.git
-
-Student: my2878
+- **Task 2**: MNIST GAN Implementation
+- **Task 4**: Diffusion and Energy-Based Models on CIFAR-10
+- **Task 5**: Fine-tuned GPT2 for QA with custom response format
 
